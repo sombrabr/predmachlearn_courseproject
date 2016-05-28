@@ -76,3 +76,4 @@ $RECYCLE.BIN/
 *.lnk
 workspace.RData
 *.csv
+report_cache/

@@ -61,4 +61,5 @@ modFit <- train(x,y, method="rf",data=csv.training,trControl=fitControl)
 
 stopCluster(cluster)
 
-predict(modFit, csv.testing[,!to.remove.right])
+p = predict(modFit, csv.testing[,!to.remove.right])
+modFit$results[modFit$results$mtry==modFit$bestTune$mtry,c("Accuracy")]

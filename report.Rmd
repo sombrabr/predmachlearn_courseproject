@@ -1,0 +1,163 @@
+---
+title: "Weight Lifting Exercise Recognition"
+author: "Eduardo Bortoluzzi Junior"
+date: "May 27th, 2016"
+output: 
+  html_document:
+    keep_md: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r libraries, include=FALSE}
+library(caret)
+library(parallel)
+library(doParallel)
+library(xtable)
+```
+
+## Abstract
+
+This report analyses data collected from accelerometers on the belt, forearm, 
+arm and dumbbell of 6 subjects doing weight lifting exercises to create a model
+so it is possible to detect this type of exercise being doing in a wrong way
+during the exercise series, not after the series is ended. 
+
+The data has information when the subject was doing the exercise in the right 
+way (class A), and when doing in 4 common wrong ways: throwing the elbows to the 
+front (class B), lifting the dumbbell only halfway (class C), lowering the 
+dumbbell only halfway (class D) and throwing the hips to the front (class E).
+
+The final model could be applied to any subject at any time to detect in which
+class the exercise is being done.
+
+The model was created using machine learning in R language, with the *caret*
+package.
+
+More information about this data is available at [PUC RIO's Human Activity Recognition site](http://groupware.les.inf.puc-rio.br/har), at the section on
+Weight Lifting Exercises Dataset.
+
+## Model creation
+
+```{r load_training, include=FALSE, cache=TRUE}
+TRAINING_FILE = "pml-training.csv"
+
+download.file(
+  url="https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv",
+  destfile = TRAINING_FILE)
+
+data.training = read.csv(TRAINING_FILE)
+
+dimensions = dim(data.training)
+```
+The training data is loaded from [https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv](https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv). It has 
+`r dimensions[1]` observations and `r dimensions[2]` variables.
+
+After analyzing the training data, it was detected that there are raw sensors
+data and some derived data generated after aggregating those raw data for a time
+period. As the aim of this model is to detect the class of the exercise
+_during_, and not after, the exercise, the time series information and the
+aggregated ones will be left out during the model training. The following
+variables were left out:
+
+* *X*: the order of the test, not relevant
+
+* *user\_name*: the subject name, not relevant
+
+* *raw\_timestamp\_part\_\**, *cvtd\_timestamp*: the time of the exercise series, 
+  not relevant for the aim of the model, that is not a time series;
+  
+* *new\_window*, *num\_windows*: the aggregation window, not relevant;
+
+* *kurtosis\_\**, *skewness\_\**, *max\_\**, *min\_\**, *amplitude\_\**, 
+  *var\_\**, *avg\_\**, *stddev\_\**, *var\_\**: data generated after the
+  aggregation in a time period, not relevant.
+
+```{r remove_variables}
+to.remove = grepl("^(classe|X|user_name|raw_timestamp_part_|cvtd_timestamp|new_window|num_windows|kurtosis_|skewness_|max_|min_|amplitude_|var_|avg_|stddev_|var_)", names(data.training))
+
+# Training to predict "classe"
+y = data.training[,c("classe")]
+# Training data, without the removed ones
+x = data.training[,c(!to.remove)]
+```
+
+For high accuracy, Random Forest was selected as the predict function, using
+10-fold cross validation. The cross validation was done inside the training
+function, so the data was not split into the training and validation data sets.
+
+With the Random Forest, several samples is bootstrapped from the training data
+to grow different trees, so the best one can be selected.
+
+This is the code for the training:
+
+```{r create_parallel_cluster, include=FALSE}
+cluster <- makeCluster(detectCores() - 1)
+registerDoParallel(cluster)
+```
+```{r train, cache=TRUE, warning=FALSE, error=FALSE}
+set.seed(1234)
+fitControl <- trainControl(method = "cv", number = 10, allowParallel = TRUE)
+modFit <- train(x, y, method="rf", data=data.training, trControl=fitControl)
+```
+```{r stop_parallel_cluster, include=FALSE}
+stopCluster(cluster)
+```
+
+The summary for the model is:
+
+```{r fit_summary, echo=FALSE}
+print(modFit)
+```
+
+And it is seen that the selected model has a high accuracy of `r modFit$results[modFit$results$mtry==modFit$bestTune$mtry,c("Accuracy")]`, so no
+further optimization will be done.
+
+The low in sample error rate can be seen from the confusion matrix:
+
+```{r confusion_matrix, echo=FALSE, results='asis'}
+knitr::kable(modFit$finalModel$confusion)
+```
+
+## Applying the model to the test sample
+
+```{r load_testing, include=FALSE, cache=TRUE}
+TESTING_FILE = "pml-testing.csv"
+
+download.file(
+  url="https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv",
+  destfile = TESTING_FILE)
+
+data.testing = read.csv(TESTING_FILE)
+
+dimensions = dim(data.testing)
+```
+The testing data is loaded from [https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv](https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv). It has 
+`r dimensions[1]` observations and `r dimensions[2]` variables.
+
+The prediction is done using the model created in the previous session, leaving
+out the variables not important:
+
+```{r predict, error=FALSE, warning=FALSE, message=FALSE}
+pred = predict(modFit, data.testing[,!to.remove])
+```
+
+The classes of each exercise in the testing sample are predicted as:
+
+```{r testing_classes, echo=FALSE}
+x = as.character(levels(pred))[pred]
+names(x) = data.testing$problem_id
+x
+```
+
+## Conclusion
+
+The Random Forest is not a fast function for prediction, as this prediction took
+near `r round(modFit$times$everything["elapsed"] / 60)` minutes in a Intel i3 
+processor using some parallelism, but it produces great results, as seen in the 
+model accuracy.
+
+The probability of having the `r dimensions[1]` classes of the testing samples
+correctly predicted is
+`r round(modFit$results[modFit$results$mtry==modFit$bestTune$mtry,c("Accuracy")] ^ dimensions[1] * 100, 1)`%, a very good probability.
