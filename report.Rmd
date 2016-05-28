@@ -75,13 +75,18 @@ variables were left out:
   aggregation in a time period, not relevant.
 
 ```{r remove_variables}
-to.remove = grepl("^(classe|X|user_name|raw_timestamp_part_|cvtd_timestamp|new_window|num_windows|kurtosis_|skewness_|max_|min_|amplitude_|var_|avg_|stddev_|var_)", names(data.training))
+to.remove = grepl("^(classe|X|user_name|raw_timestamp_part_|cvtd_timestamp|new_window|num_window|kurtosis_|skewness_|max_|min_|amplitude_|var_|avg_|stddev_|var_)", names(data.training))
 
 # Training to predict "classe"
 y = data.training[,c("classe")]
 # Training data, without the removed ones
 x = data.training[,c(!to.remove)]
 ```
+
+The remaining variables are the roll (longitudinal axis), pitch (lateral axis),
+yaw (vertical axis) rotations; total accelaration; and the x, y and z 
+information of the gyroscope, accelerometer and magnetometer of each of the
+sensors.
 
 For high accuracy, Random Forest was selected as the predict function, using
 10-fold cross validation. The cross validation was done inside the training
@@ -96,7 +101,7 @@ This is the code for the training:
 cluster <- makeCluster(detectCores() - 1)
 registerDoParallel(cluster)
 ```
-```{r train, cache=TRUE, warning=FALSE, error=FALSE}
+```{r train, cache=TRUE, warning=FALSE, error=FALSE, results='hide'}
 set.seed(1234)
 fitControl <- trainControl(method = "cv", number = 10, allowParallel = TRUE)
 modFit <- train(x, y, method="rf", data=data.training, trControl=fitControl)
@@ -143,9 +148,10 @@ out the variables not important:
 pred = predict(modFit, data.testing[,!to.remove])
 ```
 
-The classes of each exercise in the testing sample are predicted as:
+The classes of each exercise in the testing sample is not shown, but can be
+generated with the code above.
 
-```{r testing_classes, echo=FALSE}
+```{r testing_classes, include=FALSE}
 x = as.character(levels(pred))[pred]
 names(x) = data.testing$problem_id
 x

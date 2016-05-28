@@ -20,6 +20,9 @@ dumbbell only halfway (class D) and throwing the hips to the front (class E).
 The final model could be applied to any subject at any time to detect in which
 class the exercise is being done.
 
+The model was created using machine learning in R language, with the *caret*
+package.
+
 More information about this data is available at [PUC RIO's Human Activity Recognition site](http://groupware.les.inf.puc-rio.br/har), at the section on
 Weight Lifting Exercises Dataset.
 
@@ -51,13 +54,18 @@ variables were left out:
 
 
 ```r
-to.remove = grepl("^(classe|X|user_name|raw_timestamp_part_|cvtd_timestamp|new_window|num_windows|kurtosis_|skewness_|max_|min_|amplitude_|var_|avg_|stddev_|var_)", names(data.training))
+to.remove = grepl("^(classe|X|user_name|raw_timestamp_part_|cvtd_timestamp|new_window|num_window|kurtosis_|skewness_|max_|min_|amplitude_|var_|avg_|stddev_|var_)", names(data.training))
 
 # Training to predict "classe"
 y = data.training[,c("classe")]
 # Training data, without the removed ones
 x = data.training[,c(!to.remove)]
 ```
+
+The remaining variables are the roll (longitudinal axis), pitch (lateral axis),
+yaw (vertical axis) rotations; total accelaration; and the x, y and z 
+information of the gyroscope, accelerometer and magnetometer of each of the
+sensors.
 
 For high accuracy, Random Forest was selected as the predict function, using
 10-fold cross validation. The cross validation was done inside the training
@@ -84,7 +92,7 @@ The summary for the model is:
 ## Random Forest 
 ## 
 ## 19622 samples
-##    53 predictor
+##    52 predictor
 ##     5 classes: 'A', 'B', 'C', 'D', 'E' 
 ## 
 ## No pre-processing
@@ -93,15 +101,15 @@ The summary for the model is:
 ## Resampling results across tuning parameters:
 ## 
 ##   mtry  Accuracy   Kappa    
-##    2    0.9964324  0.9954873
-##   27    0.9982673  0.9978083
-##   53    0.9966875  0.9958098
+##    2    0.9951073  0.9938106
+##   27    0.9948528  0.9934889
+##   52    0.9897566  0.9870409
 ## 
 ## Accuracy was used to select the optimal model using  the largest value.
-## The final value used for the model was mtry = 27.
+## The final value used for the model was mtry = 2.
 ```
 
-And it is seen that the selected model has a high accuracy of 0.9982673, so no
+And it is seen that the selected model has a high accuracy of 0.9951073, so no
 further optimization will be done.
 
 The low in sample error rate can be seen from the confusion matrix:
@@ -110,10 +118,10 @@ The low in sample error rate can be seen from the confusion matrix:
          A      B      C      D      E   class.error
 ---  -----  -----  -----  -----  -----  ------------
 A     5578      1      0      0      1     0.0003584
-B        4   3791      2      0      0     0.0015802
-C        0      5   3417      0      0     0.0014611
-D        0      0     10   3205      1     0.0034204
-E        0      0      0      2   3605     0.0005545
+B       10   3784      3      0      0     0.0034238
+C        0     21   3400      1      0     0.0064290
+D        0      0     41   3173      2     0.0133706
+E        0      0      0      7   3600     0.0019407
 
 ## Applying the model to the test sample
 
@@ -129,23 +137,18 @@ out the variables not important:
 pred = predict(modFit, data.testing[,!to.remove])
 ```
 
-The classes of each exercise in the testing sample are predicted as:
+The classes of each exercise in the testing sample is not shown, but can be
+generated with the code above.
 
 
-```
-##   1   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16  17  18 
-## "B" "A" "B" "A" "A" "E" "D" "B" "A" "A" "B" "C" "B" "A" "E" "E" "A" "B" 
-##  19  20 
-## "B" "B"
-```
 
 ## Conclusion
 
 The Random Forest is not a fast function for prediction, as this prediction took
-near 28 minutes in a Intel i3 
+near 37 minutes in a Intel i3 
 processor using some parallelism, but it produces great results, as seen in the 
 model accuracy.
 
 The probability of having the 20 classes of the testing samples
 correctly predicted is
-96.6%, a very good probability.
+90.7%, a very good probability.

@@ -41,7 +41,7 @@ invalid.column = function(x) {
 to.remove = sapply(csv.training, invalid.column)
 print(names(csv.training[,to.remove]))
 
-to.remove.right = grepl("^(classe|X|user_name|raw_timestamp_part_|cvtd_timestamp|new_window|num_windows|kurtosis_|skewness_|max_|min_|amplitude_|var_|avg_|stddev_|var_)", names(csv.training))
+to.remove.right = grepl("^(classe|X|user_name|raw_timestamp_part_|cvtd_timestamp|new_window|num_window|kurtosis_|skewness_|max_|min_|amplitude_|var_|avg_|stddev_|var_)", names(csv.training))
 
 summary(csv.training[,!to.remove.right])
 
