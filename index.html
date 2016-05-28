@@ -127,6 +127,7 @@ $(document).ready(function () {
 <p>This report analyses data collected from accelerometers on the belt, forearm, arm and dumbbell of 6 subjects doing weight lifting exercises to create a model so it is possible to detect this type of exercise being doing in a wrong way during the exercise series, not after the series is ended.</p>
 <p>The data has information when the subject was doing the exercise in the right way (class A), and when doing in 4 common wrong ways: throwing the elbows to the front (class B), lifting the dumbbell only halfway (class C), lowering the dumbbell only halfway (class D) and throwing the hips to the front (class E).</p>
 <p>The final model could be applied to any subject at any time to detect in which class the exercise is being done.</p>
+<p>The model was created using machine learning in R language, with the <em>caret</em> package.</p>
 <p>More information about this data is available at <a href="http://groupware.les.inf.puc-rio.br/har">PUC RIO’s Human Activity Recognition site</a>, at the section on Weight Lifting Exercises Dataset.</p>
 </div>
 <div id="model-creation" class="section level2">
@@ -140,12 +141,13 @@ $(document).ready(function () {
 <li><p><em>new_window</em>, <em>num_windows</em>: the aggregation window, not relevant;</p></li>
 <li><p><em>kurtosis_*</em>, <em>skewness_*</em>, <em>max_*</em>, <em>min_*</em>, <em>amplitude_*</em>, <em>var_*</em>, <em>avg_*</em>, <em>stddev_*</em>, <em>var_*</em>: data generated after the aggregation in a time period, not relevant.</p></li>
 </ul>
-<pre class="r"><code>to.remove = grepl(&quot;^(classe|X|user_name|raw_timestamp_part_|cvtd_timestamp|new_window|num_windows|kurtosis_|skewness_|max_|min_|amplitude_|var_|avg_|stddev_|var_)&quot;, names(data.training))
+<pre class="r"><code>to.remove = grepl(&quot;^(classe|X|user_name|raw_timestamp_part_|cvtd_timestamp|new_window|num_window|kurtosis_|skewness_|max_|min_|amplitude_|var_|avg_|stddev_|var_)&quot;, names(data.training))
 
 # Training to predict &quot;classe&quot;
 y = data.training[,c(&quot;classe&quot;)]
 # Training data, without the removed ones
 x = data.training[,c(!to.remove)]</code></pre>
+<p>The remaining variables are the roll (longitudinal axis), pitch (lateral axis), yaw (vertical axis) rotations; total accelaration; and the x, y and z information of the gyroscope, accelerometer and magnetometer of each of the sensors.</p>
 <p>For high accuracy, Random Forest was selected as the predict function, using 10-fold cross validation. The cross validation was done inside the training function, so the data was not split into the training and validation data sets.</p>
 <p>With the Random Forest, several samples is bootstrapped from the training data to grow different trees, so the best one can be selected.</p>
 <p>This is the code for the training:</p>
@@ -156,7 +158,7 @@ modFit &lt;- train(x, y, method=&quot;rf&quot;, data=data.training, trControl=fi
 <pre><code>## Random Forest 
 ## 
 ## 19622 samples
-##    53 predictor
+##    52 predictor
 ##     5 classes: 'A', 'B', 'C', 'D', 'E' 
 ## 
 ## No pre-processing
@@ -165,13 +167,13 @@ modFit &lt;- train(x, y, method=&quot;rf&quot;, data=data.training, trControl=fi
 ## Resampling results across tuning parameters:
 ## 
 ##   mtry  Accuracy   Kappa    
-##    2    0.9964324  0.9954873
-##   27    0.9982673  0.9978083
-##   53    0.9966875  0.9958098
+##    2    0.9951073  0.9938106
+##   27    0.9948528  0.9934889
+##   52    0.9897566  0.9870409
 ## 
 ## Accuracy was used to select the optimal model using  the largest value.
-## The final value used for the model was mtry = 27.</code></pre>
-<p>And it is seen that the selected model has a high accuracy of 0.9982673, so no further optimization will be done.</p>
+## The final value used for the model was mtry = 2.</code></pre>
+<p>And it is seen that the selected model has a high accuracy of 0.9951073, so no further optimization will be done.</p>
 <p>The low in sample error rate can be seen from the confusion matrix:</p>
 <table>
 <thead>
@@ -197,39 +199,39 @@ modFit &lt;- train(x, y, method=&quot;rf&quot;, data=data.training, trControl=fi
 </tr>
 <tr class="even">
 <td align="left">B</td>
-<td align="right">4</td>
-<td align="right">3791</td>
-<td align="right">2</td>
+<td align="right">10</td>
+<td align="right">3784</td>
+<td align="right">3</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">0.0015802</td>
+<td align="right">0.0034238</td>
 </tr>
 <tr class="odd">
 <td align="left">C</td>
 <td align="right">0</td>
-<td align="right">5</td>
-<td align="right">3417</td>
+<td align="right">21</td>
+<td align="right">3400</td>
+<td align="right">1</td>
 <td align="right">0</td>
-<td align="right">0</td>
-<td align="right">0.0014611</td>
+<td align="right">0.0064290</td>
 </tr>
 <tr class="even">
 <td align="left">D</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">10</td>
-<td align="right">3205</td>
-<td align="right">1</td>
-<td align="right">0.0034204</td>
+<td align="right">41</td>
+<td align="right">3173</td>
+<td align="right">2</td>
+<td align="right">0.0133706</td>
 </tr>
 <tr class="odd">
 <td align="left">E</td>
 <td align="right">0</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
-<td align="right">3605</td>
-<td align="right">0.0005545</td>
+<td align="right">7</td>
+<td align="right">3600</td>
+<td align="right">0.0019407</td>
 </tr>
 </tbody>
 </table>
@@ -239,16 +241,12 @@ modFit &lt;- train(x, y, method=&quot;rf&quot;, data=data.training, trControl=fi
 <p>The testing data is loaded from <a href="https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv" class="uri">https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv</a>. It has 20 observations and 160 variables.</p>
 <p>The prediction is done using the model created in the previous session, leaving out the variables not important:</p>
 <pre class="r"><code>pred = predict(modFit, data.testing[,!to.remove])</code></pre>
-<p>The classes of each exercise in the testing sample are predicted as:</p>
-<pre><code>##   1   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16  17  18 
-## &quot;B&quot; &quot;A&quot; &quot;B&quot; &quot;A&quot; &quot;A&quot; &quot;E&quot; &quot;D&quot; &quot;B&quot; &quot;A&quot; &quot;A&quot; &quot;B&quot; &quot;C&quot; &quot;B&quot; &quot;A&quot; &quot;E&quot; &quot;E&quot; &quot;A&quot; &quot;B&quot; 
-##  19  20 
-## &quot;B&quot; &quot;B&quot;</code></pre>
+<p>The classes of each exercise in the testing sample is not shown, but can be generated with the code above.</p>
 </div>
 <div id="conclusion" class="section level2">
 <h2>Conclusion</h2>
-<p>The Random Forest is not a fast function for prediction, as this prediction took near 28 minutes in a Intel i3 processor using some parallelism, but it produces great results, as seen in the model accuracy.</p>
-<p>The probability of having the 20 classes of the testing samples correctly predicted is 96.6%, a very good probability.</p>
+<p>The Random Forest is not a fast function for prediction, as this prediction took near 37 minutes in a Intel i3 processor using some parallelism, but it produces great results, as seen in the model accuracy.</p>
+<p>The probability of having the 20 classes of the testing samples correctly predicted is 90.7%, a very good probability.</p>
 </div>
 
 
